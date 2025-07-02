@@ -1,0 +1,38 @@
+# .github/workflows/webhook-receiver.yml
+
+name: Receive and Overwrite Latest Analysis
+
+on:
+  repository_dispatch:
+    types: [add_analysis]
+
+jobs:
+  update_json_file:
+    runs-on: ubuntu-latest
+    steps:
+      # مرحله ۱: دانلود کد ریپازیتوری
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.PAT_TOKEN }}
+
+      # مرحله ۲: بازنویسی فایل analysis.json با داده‌های جدید
+      - name: Overwrite analysis.json
+        run: |
+          # یک پوشه به اسم data می‌سازیم (اگر وجود نداشته باشه)
+          mkdir -p data
+          
+          # ‼️ نکته کلیدی اینجاست ‼️
+          # ما با استفاده از > فایل رو بازنویسی می‌کنیم.
+          # اسم فایل هم به صورت مفرد در اومده: analysis.json
+          echo '${{ github.event.client_payload.analysis }}' > data/analysis.json
+          
+      # مرحله ۳: کامیت کردن و پوش کردن تغییرات در ریپازیتوری
+      - name: Commit and push if it changed
+        uses: EndBug/add-and-commit@v9
+        with:
+          author_name: "Automated Analyst Bot"
+          author_email: "bot@github.com"
+          message: "🚀 Updated latest analysis"
+          # فایل جدید رو برای کامیت شدن مشخص می‌کنیم
+          add: "data/analysis.json"
